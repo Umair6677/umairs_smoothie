@@ -5,7 +5,7 @@ from snowflake.snowpark.functions import col
 # Write directly to the app
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 st.write(
-    """Choose the fruits you want in your custom smoothie!
+    """Choose the fruits you want in your custom smoothie!.
     """
 )
 
@@ -14,30 +14,38 @@ st.write('The name on your smoothie will be:', name_on_order)
 
 cnx = st.connection("snowflake")
 session = cnx.session()
-my_dataframe = session.table('smoothies.public.fruit_options').select(col('FRUIT_NAME')).to_pandas()
+my_dataframe = session.table('smoothies.public.fruit_options').select(col('FRUIT_NAME'))
+#st.dataframe(data= my_dataframe, use_container_width=True)
 
-# Convert the Snowpark DataFrame to a list for the multiselect widget
-fruit_options = my_dataframe['FRUIT_NAME'].tolist()
 
 ingredient_list = st.multiselect(
     'Choose up to 5 ingredients:',
-    fruit_options,
-    max_selections=5
+    my_dataframe,
+    max_selections = 5
 )
 
 if ingredient_list:
-    # Concatenate selected ingredients into a string
-    ingredients_string = ' '.join(ingredient_list)
+    #st.write(ingredient_list) #to see the selected list with uniqe index
+    #st.text(ingredient_list) # to see the selected list in row without index
 
-    # Build a SQL Insert Statement
-    my_insert_stmt = f"""
-    INSERT INTO smoothies.public.orders (ingredients, name_on_order)
-    VALUES ('{ingredients_string}', '{name_on_order}')
-    """
+    ingredients_string = ''
+
+    for fruit_chosen in ingredient_list:
+        ingredients_string += fruit_chosen + ' '
+
+    #st.write(ingredients_string)
+
+
+    # Build a SQL Insert Statement & Test It
+    my_insert_stmt = """ insert into smoothies.public.orders(ingredients, name_on_order)
+                values ('""" + ingredients_string + """', '"""+name_on_order+"""')"""
+    
+    #st.write(my_insert_stmt)
+    #st.stop
 
     # submit button
     time_to_insert = st.button('Submit Order')
-
+    
     if time_to_insert:
         session.sql(my_insert_stmt).collect()
         st.success('Your smoothie is ordered!', icon='✅')
